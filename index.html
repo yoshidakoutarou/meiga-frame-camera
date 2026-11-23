@@ -35,6 +35,8 @@ body{display:flex;flex-direction:column;height:100dvh;padding:env(safe-area-inse
 #count.on{display:flex}
 #msg{position:absolute;left:10px;right:10px;bottom:10px;background:var(--err);border:1px solid var(--rec);color:var(--ink);padding:10px 12px;border-radius:10px;font-size:13px;display:none}
 #msg.on{display:block}
+#note{position:absolute;left:10px;right:10px;top:10px;background:rgba(20,18,16,.88);border:1px solid var(--gold);color:var(--ink);padding:10px 12px;border-radius:10px;font-size:13px;white-space:pre-line;display:none}
+#note.on{display:block}
 .bar{display:flex;gap:6px;padding:3px 10px;flex-wrap:wrap;justify-content:center;align-items:center}
 button,.file{font:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;min-height:44px;padding:0 11px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;-webkit-tap-highlight-color:transparent;white-space:nowrap}
 button:focus-visible,.file:focus-within{outline:2px solid var(--gold);outline-offset:2px}
@@ -80,6 +82,7 @@ body.editing #sqBtn{display:inline-flex}
     <div id="hint"></div>
     <div id="count"></div>
     <div id="recBadge">● 0:00</div>
+    <div id="note" role="status"></div>
     <div id="msg" role="alert"></div>
   </div>
 </div>
@@ -157,6 +160,11 @@ const S=()=>cur?cur.set:null;
 let msgTimer=null;
 function showMsg(t,keep){const m=$('msg');m.textContent=t;m.classList.add('on');clearTimeout(msgTimer);if(!keep)msgTimer=setTimeout(()=>m.classList.remove('on'),8000);}
 $('msg').onclick=()=>$('msg').classList.remove('on');
+// 案内（エラーではないお知らせ）
+let noteTimer=null;
+function showNote(t){const n=$('note');n.textContent=t;n.classList.add('on');clearTimeout(noteTimer);noteTimer=setTimeout(hideNote,6000);}
+function hideNote(){$('note').classList.remove('on');}
+$('note').onclick=hideNote;
 window.addEventListener('error',e=>showMsg('エラーが起きました：'+(e.message||'不明なエラー')));
 window.addEventListener('unhandledrejection',e=>showMsg('エラーが起きました：'+((e.reason&&e.reason.message)||e.reason||'不明なエラー')));
 
@@ -208,7 +216,12 @@ function layout(){
   if(mode==='close'){
     // 寄り：穴の中心で絵を拡大し、穴を画面幅いっぱい（収まらなければ画面の高さいっぱい）にする
     s*=Math.min(W/(h.w*pic.w*s),H/(h.h*pic.h*s));
-    ox=W/2-(h.x+h.w/2)*pic.w*s;oy=H/2-(h.y+h.h/2)*pic.h*s;
+    const pw=pic.w*s,ph=pic.h*s;
+    ox=W/2-(h.x+h.w/2)*pw;oy=H/2-(h.y+h.h/2)*ph;
+    // 絵の端が画面の内側に入らないよう、穴を中央からずらす。
+    // 穴は絵の中にあり画面より小さいので、この範囲に収めても穴は画面からはみ出さない
+    oy=ph>=H?Math.min(Math.max(oy,H-ph),0):(H-ph)/2;
+    ox=pw>=W?Math.min(Math.max(ox,W-pw),0):(W-pw)/2;
   }
   return {s,ox,oy,hx:ox+h.x*pic.w*s,hy:oy+h.y*pic.h*s,hw:h.w*pic.w*s,hh:h.h*pic.h*s};
 }
@@ -392,8 +405,12 @@ $('mirBtn').onclick=()=>{g.mirror=!g.mirror;applyMirror();syncButtons();saveG();
 const next=(arr,v)=>arr[(arr.indexOf(v)+1)%arr.length];
 $('fitBtn').onclick=()=>{if(!cur)return;S().fit=S().fit==='contain'?'cover':'contain';clampHole();buildLayer();syncButtons();saveSet();};
 $('modeBtn').onclick=()=>{if(phase!=='idle')return;mode=mode==='wide'?'close':'wide';if(mode==='close'&&editing)toggleEdit();buildLayer();syncButtons();
-  // 寄りで絵が粗くなるときの注意（穴の部分の元画像が1080px未満）
-  if(mode==='close'&&L&&L.s>1.001)showMsg('絵の画質が粗くなります（穴の部分の画像が'+Math.round(L.hw/L.s)+'pxしかありません）。');
+  if(mode==='close'){
+    let t='スマホを手に近づけて、手だけで穴を埋めてください。';
+    // 寄りで絵が粗くなるときの注意（穴の部分の元画像が1080px未満）
+    if(L&&L.s>1.001)t+='\n※ 絵の画質が粗くなります（穴の部分の画像が'+Math.round(L.hw/L.s)+'pxしかありません）。';
+    showNote(t);
+  }else hideNote();
 };
 $('zoom').oninput=e=>{if(cur)S().zoom=+e.target.value;};
 $('zoom').onchange=saveSet;
@@ -464,7 +481,7 @@ function startCountdown(){
   countTimer=setInterval(()=>{n--;if(n<=0){beginRec();}else $('count').textContent=n;},1000);
 }
 function beginRec(){
-  setPhase('rec');t0=performance.now();
+  setPhase('rec');t0=performance.now();hideNote();
   // ガイドが消えたコマが描かれてから録画を始める
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(phase!=='rec')return;
