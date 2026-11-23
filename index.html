@@ -55,11 +55,29 @@ body.editing #sqBtn{display:inline-flex}
 #recBtn.rec i{width:28px;height:28px;border-radius:6px}
 #recBtn.count i{background:var(--gold)}
 #info{color:var(--sub);font-size:11px;text-align:center;padding:0 10px 2px;font-variant-numeric:tabular-nums}
-.sheet{position:fixed;inset:0;background:rgba(10,9,8,.97);display:none;flex-direction:column;align-items:center;gap:12px;padding:calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));z-index:10}
+.sheet{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;gap:12px;padding:calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));z-index:10}
 .sheet.on{display:flex}
-#result{justify-content:center}
-#result video{max-height:60vh;max-width:100%;border-radius:10px;background:#000}
-.sheet p{margin:0;color:var(--sub);font-size:13px;text-align:center;max-width:360px}
+#result{overflow-y:auto}
+#result video{max-height:46vh;max-width:100%;border-radius:10px;background:#000;flex-shrink:0}
+.sheet h2{margin:0;font-size:15px;font-weight:600;color:var(--gold)}
+.seg{display:none;border:1px solid var(--line);border-radius:12px;overflow:hidden;flex-shrink:0}
+.seg button{border:0;border-radius:0;min-width:96px}
+.seg button.on{background:var(--gold);color:var(--bg)}
+#finPanel{width:100%;max-width:420px;border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.finRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.finK{max-width:320px;width:100%}
+.finK span{width:3em;text-align:right;font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:20px;height:20px;border-radius:50%;border:2px solid var(--line);background:repeating-linear-gradient(45deg,#444 0 4px,#222 4px 8px)}
+.sw.big{width:44px;height:44px}
+#finBtn{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:700;min-width:160px}
+#finProg{display:none;width:100%;align-items:center;gap:8px;font-size:12px;color:var(--sub)}
+#finProg.on{display:flex}
+#finProg .track{flex:1;height:8px;border-radius:4px;background:var(--panel);overflow:hidden}
+#finProg .track i{display:block;height:100%;width:0;background:var(--gold)}
+#finProg span{min-width:9em;font-variant-numeric:tabular-nums}
+#finMsg{color:#ff9d93!important}
+#picker canvas{max-width:100%;max-height:62vh;border-radius:8px;touch-action:none;cursor:crosshair}
+.sheet p{margin:0;color:var(--sub);font-size:13px;text-align:center;max-width:360px;white-space:pre-line}
 #saveBtn{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:700}
 #lib h2{margin:0;font-size:16px;font-weight:600;color:var(--gold)}
 #libList{flex:1;overflow-y:auto;width:100%;max-width:480px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-content:start}
@@ -113,14 +131,34 @@ body.editing #sqBtn{display:inline-flex}
 <div id="info"></div>
 
 <div id="result" class="sheet">
+  <div class="seg" id="viewBar"><button id="viewOrig">元の動画</button><button id="viewFin">仕上げ後</button></div>
   <video id="out" controls playsinline></video>
+  <p id="outInfo"></p>
   <div class="bar">
     <button id="saveBtn">保存する</button>
     <a id="dl" class="file" download="meiga.mp4">ファイルに保存</a>
     <button id="closeBtn">撮り直す</button>
   </div>
-  <p id="outInfo"></p>
-  <p>「保存する」で共有メニューが開きます。「ビデオを保存」を選ぶと写真アプリに入ります。</p>
+  <p>保存ボタンで共有メニューが開きます。「ビデオを保存」を選ぶと写真アプリに入ります。</p>
+  <section id="finPanel">
+    <h2>仕上げ（穴の中の色を絵に寄せる）</h2>
+    <div class="finRow">
+      <button id="clothOn">服の色 オフ</button>
+      <button id="clothPick"><i class="sw" id="clothSw"></i>袖の色を拾う</button>
+    </div>
+    <label class="zoom finK">強さ<input id="clothK" type="range" min="0" max="100" step="5" value="60"><span id="clothKv">60%</span></label>
+    <div class="finRow"><button id="skinOn" disabled>肌の色（準備中）</button></div>
+    <button id="finBtn">仕上げる</button>
+    <div id="finProg"><div class="track"><i id="finBar"></i></div><span id="finTxt"></span><button id="finStop">中止</button></div>
+    <p id="finMsg"></p>
+  </section>
+</div>
+
+<div id="picker" class="sheet">
+  <h2>袖の色を拾う</h2>
+  <p>絵の中の袖をタップしてください</p>
+  <canvas id="pickCv"></canvas>
+  <div class="bar"><i class="sw big" id="pickSw"></i><button id="pickOk" disabled>この色にする</button><button id="pickCancel">やめる</button></div>
 </div>
 
 <div id="lib" class="sheet">
@@ -150,7 +188,7 @@ document.body.appendChild(video);
 const g={mirror:true,timer:3,dur:15,guide:false,black:'off',lastId:null,camUsed:false};
 try{Object.assign(g,JSON.parse(localStorage.getItem('meiga.v3')||'{}'));}catch(e){}
 function saveG(){try{localStorage.setItem('meiga.v3',JSON.stringify(g))}catch(e){}}
-const defSet=()=>({hole:{x:.3,y:.6,w:.4,h:.4},fit:'contain',zoom:1,square:true});
+const defSet=()=>({hole:{x:.3,y:.6,w:.4,h:.4},fit:'contain',zoom:1,square:true,cloth:{on:false,k:.6,rgb:null}});
 let cur=null,pic=null;   // cur={id,name,w,h,ow,oh,set}  pic={src,w,h,ow,oh}
 let stream=null,facing='user',mode='wide',editing=false;
 let phase='idle',t0=0;   // idle / count / rec
@@ -335,6 +373,7 @@ async function openSaved(id){
     if(!r)return false;
     const {i}=await decode(r.blob);
     const {blob,thumb,...rec}=r;
+    rec.set=Object.assign(defSet(),rec.set);   // 後から増えた設定項目を補う
     setCurrent(rec,i);
     saveSet();   // 最終使用日時を更新
     return true;
@@ -459,7 +498,7 @@ const endDrag=()=>{if(drag){drag=null;saveSet();}};
 holeEl.addEventListener('pointerup',endDrag);holeEl.addEventListener('pointercancel',endDrag);
 
 // ---- セルフタイマーと録画 ----
-let rec=null,chunks=[],tick=null,countTimer=null,mime='',outFile=null,outUrl=null;
+let rec=null,chunks=[],tick=null,countTimer=null,mime='';
 function pickMime(){
   for(const m of['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'])
     if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m))return m;
@@ -482,6 +521,8 @@ function startCountdown(){
 }
 function beginRec(){
   setPhase('rec');t0=performance.now();hideNote();
+  // 仕上げ処理のために、録画時の穴の位置（画面に対する比率）を覚えておく
+  recHole=L?{x:L.hx/W,y:L.hy/H,w:L.hw/W,h:L.hh/H}:null;
   // ガイドが消えたコマが描かれてから録画を始める
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(phase!=='rec')return;
@@ -521,21 +562,109 @@ function showResult(){
   if(!blob.size){showMsg('録画データが空でした。もう一度撮ってください。');return;}
   const ext=type.includes('mp4')?'mp4':'webm';
   const name='meiga-'+new Date().toISOString().slice(0,19).replace(/[-:T]/g,'')+'.'+ext;
-  // 共有メニューはタップ直後に呼ぶ必要があるため、ファイルはここで作っておく
-  outFile=new File([blob],name,{type});
-  if(outUrl)URL.revokeObjectURL(outUrl);
-  outUrl=URL.createObjectURL(blob);
-  $('out').src=outUrl;$('dl').href=outUrl;$('dl').download=name;
-  $('outInfo').textContent='約'+dur.toFixed(1)+'秒 ／ '+ext.toUpperCase()+' ／ '+(blob.size/1048576).toFixed(1)+'MB';
-  $('result').classList.add('on');
+  setOut('orig',blob,name,'元の動画 ／ 約'+dur.toFixed(1)+'秒 ／ '+ext.toUpperCase()+' ／ '+(blob.size/1048576).toFixed(1)+'MB');
+  setOut('fin',null);
+  showOut('orig');$('finMsg').textContent='';syncFinish();
+  $('result').classList.add('on');$('result').scrollTop=0;
 }
+
+// ---- 録画結果（元の動画／仕上げ後）----
+// 共有メニューはタップ直後に呼ぶ必要があるため、ファイルは先に作っておく
+const outs={orig:null,fin:null};
+let showing='orig',recHole=null,finishing=false,finCancel=false;
+function setOut(kind,blob,name,info){
+  if(outs[kind])URL.revokeObjectURL(outs[kind].url);
+  outs[kind]=blob?{file:new File([blob],name,{type:blob.type}),url:URL.createObjectURL(blob),info}:null;
+}
+function showOut(kind){
+  showing=kind;const o=outs[kind];
+  $('out').src=o.url;$('dl').href=o.url;$('dl').download=o.file.name;$('outInfo').textContent=o.info;
+  $('saveBtn').textContent=!outs.fin?'保存する':kind==='fin'?'仕上げを保存':'元の動画を保存';
+  $('viewBar').style.display=outs.fin?'flex':'none';
+  $('viewOrig').classList.toggle('on',kind==='orig');$('viewFin').classList.toggle('on',kind==='fin');
+}
+$('viewOrig').onclick=()=>{if(outs.orig)showOut('orig');};
+$('viewFin').onclick=()=>{if(outs.fin)showOut('fin');};
 $('saveBtn').onclick=()=>{
-  if(!outFile)return;
-  if(navigator.canShare&&navigator.canShare({files:[outFile]})){
-    navigator.share({files:[outFile]}).catch(err=>{if(err.name!=='AbortError')showMsg('共有メニューを開けませんでした（'+err.name+'）。「ファイルに保存」を使ってください。');});
+  const o=outs[showing];if(!o||finishing)return;
+  if(navigator.canShare&&navigator.canShare({files:[o.file]})){
+    navigator.share({files:[o.file]}).catch(err=>{if(err.name!=='AbortError')$('finMsg').textContent='共有メニューを開けませんでした（'+err.name+'）。「ファイルに保存」を使ってください。';});
   }else $('dl').click();
 };
-$('closeBtn').onclick=()=>{$('result').classList.remove('on');$('out').pause();$('out').removeAttribute('src');$('out').load();};
+$('closeBtn').onclick=()=>{
+  if(finishing)return;
+  $('result').classList.remove('on');$('out').pause();$('out').removeAttribute('src');$('out').load();
+  setOut('orig',null);setOut('fin',null);
+};
+
+// ---- 仕上げ（服の色）----
+function syncFinish(){
+  const c=S()&&S().cloth;
+  $('finPanel').style.display=recHole&&c?'flex':'none';
+  if(!c)return;
+  $('clothOn').textContent='服の色 '+(c.on?'オン':'オフ');$('clothOn').classList.toggle('on',c.on);
+  $('clothSw').style.background=c.rgb?'rgb('+c.rgb.join(',')+')':'';
+  $('clothK').value=Math.round(c.k*100);$('clothKv').textContent=Math.round(c.k*100)+'%';
+  const ready=c.on&&c.rgb&&outs.orig;
+  $('finBtn').disabled=!ready||finishing;
+  $('finBtn').textContent=outs.fin?'仕上げ直す':'仕上げる';
+  $('finProg').classList.toggle('on',finishing);
+  for(const id of ['clothOn','clothPick','clothK','saveBtn','closeBtn','viewOrig','viewFin'])$(id).disabled=finishing;
+  if(!finishing&&!$('finMsg').textContent&&c.on&&!c.rgb)$('finMsg').textContent='「袖の色を拾う」で、絵から色を選んでください。';
+}
+$('clothOn').onclick=()=>{const c=S().cloth;c.on=!c.on;$('finMsg').textContent='';syncFinish();saveSet();};
+$('clothK').oninput=e=>{S().cloth.k=e.target.value/100;$('clothKv').textContent=e.target.value+'%';};
+$('clothK').onchange=saveSet;
+$('finStop').onclick=()=>{finCancel=true;$('finTxt').textContent='中止しています…';};
+$('finBtn').onclick=async()=>{
+  const c=S()&&S().cloth;
+  if(finishing||!c||!c.on||!c.rgb||!recHole||!outs.orig)return;
+  finishing=true;finCancel=false;$('finMsg').textContent='';$('finBar').style.width='0';syncFinish();
+  const started=performance.now();
+  try{
+    const m=await import('./finish.js');
+    const blob=await m.finishVideo({blob:outs.orig.file,hole:recHole,cloth:{rgb:c.rgb,k:c.k},
+      onProgress:(p,t)=>{$('finBar').style.width=(p*100).toFixed(1)+'%';$('finTxt').textContent=t+'　'+Math.round(p*100)+'%';},
+      canceled:()=>finCancel});
+    if(blob){
+      const name=outs.orig.file.name.replace(/\.\w+$/,'')+'-shiage.mp4';
+      const s=m.finishVideo.stats||{},per=k=>s.frames?Math.round(s[k]/s.frames):0;
+      setOut('fin',blob,name,'仕上げ後（服'+Math.round(c.k*100)+'%） ／ MP4 ／ '+(blob.size/1048576).toFixed(1)+'MB ／ 処理 '+Math.round((performance.now()-started)/1000)+'秒'
+        +'\n1コマあたり：読込'+per('draw')+'・判定'+per('seg')+'・平均'+per('mean')+'・色'+per('gl')+'・書出'+per('encode')+'ms（'+s.frames+'コマ）');
+      showOut('fin');
+    }
+  }catch(e){$('finMsg').textContent='仕上げに失敗しました：'+((e&&e.message)||e);}
+  finally{finishing=false;syncFinish();}
+};
+
+// ---- 絵から色を拾う ----
+let pickRgb=null;
+function drawPicker(mark){
+  const cv=$('pickCv'),dpr=Math.min(2,window.devicePixelRatio||1);
+  const maxW=Math.min(window.innerWidth-32,600),maxH=window.innerHeight*.62;
+  const s=Math.min(maxW/pic.w,maxH/pic.h);
+  cv.style.width=Math.round(pic.w*s)+'px';cv.style.height=Math.round(pic.h*s)+'px';
+  cv.width=Math.round(pic.w*s*dpr);cv.height=Math.round(pic.h*s*dpr);
+  const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(pic.src,0,0,cv.width,cv.height);
+  if(mark){x.strokeStyle='#fff';x.lineWidth=2*dpr;x.beginPath();x.arc(mark.x,mark.y,10*dpr,0,7);x.stroke();x.strokeStyle='#000';x.beginPath();x.arc(mark.x,mark.y,12*dpr,0,7);x.stroke();}
+}
+$('clothPick').onclick=()=>{
+  if(!pic)return;
+  pickRgb=null;$('pickOk').disabled=true;$('pickSw').style.background='';
+  $('picker').classList.add('on');drawPicker();
+};
+$('pickCv').addEventListener('pointerdown',e=>{
+  const cv=$('pickCv'),r=cv.getBoundingClientRect(),k=cv.width/r.width;
+  const px=(e.clientX-r.left)*k,py=(e.clientY-r.top)*k,rad=Math.max(2,Math.round(6*k));
+  drawPicker();   // 印のない状態で色を読む
+  const d=cv.getContext('2d').getImageData(Math.max(0,px-rad),Math.max(0,py-rad),rad*2,rad*2).data;
+  let R=0,G=0,B=0,n=0;for(let i=0;i<d.length;i+=4){R+=d[i];G+=d[i+1];B+=d[i+2];n++;}
+  pickRgb=[R/n,G/n,B/n].map(Math.round);
+  $('pickSw').style.background='rgb('+pickRgb.join(',')+')';$('pickOk').disabled=false;
+  drawPicker({x:px,y:py});
+});
+$('pickOk').onclick=()=>{if(pickRgb){const c=S().cloth;c.rgb=pickRgb;c.on=true;$('finMsg').textContent='';saveSet();syncFinish();}$('picker').classList.remove('on');};
+$('pickCancel').onclick=()=>$('picker').classList.remove('on');
 
 // ---- 画面の点灯と、裏に回ったときの扱い ----
 let wakeLock=null;
