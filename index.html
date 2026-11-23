@@ -31,25 +31,42 @@ body{display:flex;flex-direction:column;height:100dvh;padding:env(safe-area-inse
 #hole .h::after{content:"";width:26px;height:26px;border-radius:50%;background:var(--gold);border:3px solid var(--bg)}
 #hint{position:absolute;left:0;right:0;top:40%;text-align:center;padding:0 24px;color:var(--sub);pointer-events:none}
 #recBadge{position:absolute;top:10px;left:10px;background:var(--rec);color:#fff;font-weight:700;padding:3px 10px;border-radius:99px;display:none;font-variant-numeric:tabular-nums}
+#count{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:min(40vw,220px);font-weight:700;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.8);pointer-events:none;font-variant-numeric:tabular-nums}
+#count.on{display:flex}
 #msg{position:absolute;left:10px;right:10px;bottom:10px;background:var(--err);border:1px solid var(--rec);color:var(--ink);padding:10px 12px;border-radius:10px;font-size:13px;display:none}
 #msg.on{display:block}
-.bar{display:flex;gap:6px;padding:4px 10px;flex-wrap:wrap;justify-content:center;align-items:center}
-button,.file{font:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;min-height:44px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.bar{display:flex;gap:6px;padding:3px 10px;flex-wrap:wrap;justify-content:center;align-items:center}
+button,.file{font:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;min-height:44px;padding:0 11px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;-webkit-tap-highlight-color:transparent;white-space:nowrap}
 button:focus-visible,.file:focus-within{outline:2px solid var(--gold);outline-offset:2px}
 button.on{border-color:var(--gold);color:var(--gold)}
 button:disabled{opacity:.4}
 .file input{display:none}
+#sqBtn{display:none}
+body.editing #sqBtn{display:inline-flex}
+.zoom{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:12px;flex:1;min-width:120px;max-width:260px}
+.zoom input{flex:1;accent-color:var(--gold);height:44px}
+.recRow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:2px 10px}
+.recRow button:first-child{justify-self:end}
+.recRow button:last-child{justify-self:start}
 #recBtn{width:72px;height:72px;border-radius:50%;padding:0;background:transparent;border:4px solid var(--ink)}
 #recBtn i{width:52px;height:52px;border-radius:50%;background:var(--rec);transition:all .2s}
 #recBtn.rec i{width:28px;height:28px;border-radius:6px}
-.zoom{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:13px;width:100%;max-width:420px}
-.zoom input{flex:1;accent-color:var(--gold);height:44px}
-#info{color:var(--sub);font-size:11px;text-align:center;padding:0 10px;font-variant-numeric:tabular-nums}
-#result{position:fixed;inset:0;background:rgba(10,9,8,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
-#result.on{display:flex}
-#result video{max-height:62vh;max-width:100%;border-radius:10px;background:#000}
-#result p{margin:0;color:var(--sub);font-size:13px;text-align:center;max-width:360px}
+#recBtn.count i{background:var(--gold)}
+#info{color:var(--sub);font-size:11px;text-align:center;padding:0 10px 2px;font-variant-numeric:tabular-nums}
+.sheet{position:fixed;inset:0;background:rgba(10,9,8,.97);display:none;flex-direction:column;align-items:center;gap:12px;padding:calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));z-index:10}
+.sheet.on{display:flex}
+#result{justify-content:center}
+#result video{max-height:60vh;max-width:100%;border-radius:10px;background:#000}
+.sheet p{margin:0;color:var(--sub);font-size:13px;text-align:center;max-width:360px}
 #saveBtn{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:700}
+#lib h2{margin:0;font-size:16px;font-weight:600;color:var(--gold)}
+#libList{flex:1;overflow-y:auto;width:100%;max-width:480px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-content:start}
+.item{position:relative;display:flex;flex-direction:column;gap:4px}
+.item .pick{padding:0;aspect-ratio:3/4;overflow:hidden;border-radius:10px;background:#000}
+.item .pick.cur{border:2px solid var(--gold)}
+.item img{width:100%;height:100%;object-fit:cover;display:block}
+.item .del{min-height:36px;font-size:12px;color:var(--sub)}
+.item .del.ask{color:#fff;background:var(--rec);border-color:var(--rec)}
 @media (prefers-reduced-motion:reduce){#recBtn i{transition:none}}
 </style>
 </head>
@@ -60,7 +77,8 @@ button:disabled{opacity:.4}
       <canvas id="view" width="1080" height="1920"></canvas>
       <div id="hole"><div class="h"></div></div>
     </div>
-    <div id="hint">① 名画を選ぶ<br>② カメラを起動<br>③ 穴の位置を合わせて録画</div>
+    <div id="hint"></div>
+    <div id="count"></div>
     <div id="recBadge">● 0:00</div>
     <div id="msg" role="alert"></div>
   </div>
@@ -68,6 +86,7 @@ button:disabled{opacity:.4}
 
 <div class="bar">
   <label class="file">名画を選ぶ<input id="pic" type="file" accept="image/*"></label>
+  <button id="libBtn">一覧</button>
   <button id="fitBtn">全体表示</button>
   <button id="editBtn">穴を編集</button>
   <button id="sqBtn" class="on">正方形</button>
@@ -79,24 +98,38 @@ button:disabled{opacity:.4}
   <button id="modeBtn">引き</button>
 </div>
 <div class="bar">
-  <label class="zoom">カメラの大きさ<input id="zoom" type="range" min="1" max="3" step="0.05" value="1"></label>
+  <button id="guideBtn">ガイド</button>
+  <button id="blackBtn">黒い穴 なし</button>
+  <label class="zoom">大きさ<input id="zoom" type="range" min="1" max="3" step="0.05" value="1"></label>
 </div>
-<div class="bar"><button id="recBtn" disabled aria-label="録画"><i></i></button></div>
+<div class="recRow">
+  <button id="timerBtn">タイマー 3秒</button>
+  <button id="recBtn" disabled aria-label="録画"><i></i></button>
+  <button id="durBtn">長さ 15秒</button>
+</div>
 <div id="info"></div>
 
-<div id="result">
+<div id="result" class="sheet">
   <video id="out" controls playsinline></video>
   <div class="bar">
     <button id="saveBtn">保存する</button>
     <a id="dl" class="file" download="meiga.mp4">ファイルに保存</a>
     <button id="closeBtn">撮り直す</button>
   </div>
+  <p id="outInfo"></p>
   <p>「保存する」で共有メニューが開きます。「ビデオを保存」を選ぶと写真アプリに入ります。</p>
+</div>
+
+<div id="lib" class="sheet">
+  <h2>保存した名画</h2>
+  <div id="libList"></div>
+  <button id="libClose">閉じる</button>
 </div>
 
 <script>
 {
-const W=1080,H=1920,MAX_REC=60,MAX_SIDE=4096,MAX_AREA=16e6;
+const W=1080,H=1920,MAX_REC=60,MAX_SIDE=4096,MAX_AREA=16e6,FADE=.3;
+const TIMERS=[0,3,5,10],DURS=[15,30,0],BLACKS=['off','on',1,2,3,5];
 const $=id=>document.getElementById(id);
 const view=$('view'),ctx=view.getContext('2d');
 const stage=$('stage'),mirrorEl=$('mirror'),holeEl=$('hole');
@@ -109,13 +142,16 @@ Object.assign(video.style,{position:'fixed',left:'0',top:'0',width:'2px',height:
 document.body.appendChild(video);
 
 // ---- 状態 ----
-// hole は「絵の画像に対する比率」（0〜1）
-let pic=null;            // {src, w, h}
-let stream=null,facing='user';
-const st={hole:{x:.3,y:.6,w:.4,h:.4},fit:'contain',zoom:1,mirror:true,square:true};
-let mode='wide',editing=false;
-try{const s=JSON.parse(localStorage.getItem('meiga.v2')||'null');if(s&&s.hole&&s.hole.w)Object.assign(st,s);}catch(e){}
-function saveState(){try{localStorage.setItem('meiga.v2',JSON.stringify(st))}catch(e){}}
+// g：アプリ全体の設定（localStorage）。cur.set：絵ごとの設定（IndexedDB）
+// 穴(hole)は「絵の画像に対する比率」（0〜1）
+const g={mirror:true,timer:3,dur:15,guide:false,black:'off',lastId:null,camUsed:false};
+try{Object.assign(g,JSON.parse(localStorage.getItem('meiga.v3')||'{}'));}catch(e){}
+function saveG(){try{localStorage.setItem('meiga.v3',JSON.stringify(g))}catch(e){}}
+const defSet=()=>({hole:{x:.3,y:.6,w:.4,h:.4},fit:'contain',zoom:1,square:true});
+let cur=null,pic=null;   // cur={id,name,w,h,ow,oh,set}  pic={src,w,h,ow,oh}
+let stream=null,facing='user',mode='wide',editing=false;
+let phase='idle',t0=0;   // idle / count / rec
+const S=()=>cur?cur.set:null;
 
 // ---- エラー表示 ----
 let msgTimer=null;
@@ -124,32 +160,66 @@ $('msg').onclick=()=>$('msg').classList.remove('on');
 window.addEventListener('error',e=>showMsg('エラーが起きました：'+(e.message||'不明なエラー')));
 window.addEventListener('unhandledrejection',e=>showMsg('エラーが起きました：'+((e.reason&&e.reason.message)||e.reason||'不明なエラー')));
 
+// ---- IndexedDB（失敗してもアプリは動かす）----
+let dbP=null;
+function db(){
+  if(!dbP)dbP=new Promise((res,rej)=>{
+    if(!window.indexedDB){rej(new Error('IndexedDB非対応'));return;}
+    const r=indexedDB.open('meiga',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('pics',{keyPath:'id'});
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+  });
+  return dbP;
+}
+async function tx(mode,fn){
+  const d=await db();
+  return new Promise((res,rej)=>{
+    const t=d.transaction('pics',mode),s=t.objectStore('pics');let out;
+    fn(s,v=>{out=v;});
+    t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);
+  });
+}
+const dbGet=id=>tx('readonly',(s,set)=>{const r=s.get(id);r.onsuccess=()=>set(r.result);});
+const dbAll=()=>tx('readonly',(s,set)=>{const r=s.getAll();r.onsuccess=()=>set(r.result);});
+const dbPut=v=>tx('readwrite',s=>s.put(v));
+const dbDel=id=>tx('readwrite',s=>s.delete(id));
+let saveTimer=null,saveWarned=false;
+function saveSet(){
+  if(!cur)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    const id=cur.id,set=JSON.parse(JSON.stringify(cur.set));
+    tx('readwrite',s=>{const r=s.get(id);r.onsuccess=()=>{const v=r.result;if(v){v.set=set;v.used=Date.now();s.put(v);}};})
+      .catch(()=>{if(!saveWarned){saveWarned=true;showMsg('設定を保存できませんでした。撮影はそのまま続けられます。');}});
+  },300);
+}
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+
 // ---- 配置の計算 ----
 // 絵を画面（1080×1920）のどこにどの倍率で描くか、穴が画面のどこに来るかを返す
 function layoutWide(){
-  const s=st.fit==='contain'?Math.min(W/pic.w,H/pic.h):Math.max(W/pic.w,H/pic.h);
+  const s=S().fit==='contain'?Math.min(W/pic.w,H/pic.h):Math.max(W/pic.w,H/pic.h);
   return {s,ox:(W-pic.w*s)/2,oy:(H-pic.h*s)/2};
 }
 function layout(){
-  if(!pic)return null;
+  if(!pic||!cur)return null;
   let {s,ox,oy}=layoutWide();
-  const h=st.hole;
+  const h=S().hole;
   if(mode==='close'){
     // 寄り：穴の中心で絵を拡大し、穴を画面幅いっぱい（収まらなければ画面の高さいっぱい）にする
-    const k=Math.min(W/(h.w*pic.w*s),H/(h.h*pic.h*s));
-    s*=k;
+    s*=Math.min(W/(h.w*pic.w*s),H/(h.h*pic.h*s));
     ox=W/2-(h.x+h.w/2)*pic.w*s;oy=H/2-(h.y+h.h/2)*pic.h*s;
   }
   return {s,ox,oy,hx:ox+h.x*pic.w*s,hy:oy+h.y*pic.h*s,hw:h.w*pic.w*s,hh:h.h*pic.h*s};
 }
 // 穴を「絵の中」かつ「画面の中」に収める
 function clampHole(){
-  if(!pic)return;
-  const {s,ox,oy}=layoutWide(),h=st.hole;
+  if(!pic||!cur)return;
+  const {s,ox,oy}=layoutWide(),h=S().hole;
   const x0=Math.max(0,-ox/(s*pic.w)),x1=Math.min(1,(W-ox)/(s*pic.w));
   const y0=Math.max(0,-oy/(s*pic.h)),y1=Math.min(1,(H-oy)/(s*pic.h));
   const minW=.05;
-  if(st.square){
+  if(S().square){
     const r=pic.w/pic.h;                    // 正方形：h = w × 幅/高さ
     h.w=Math.max(minW,Math.min(h.w,x1-x0,(y1-y0)/r));h.h=h.w*r;
   }else{
@@ -159,9 +229,10 @@ function clampHole(){
 }
 
 // ---- 描画 ----
+let L=null;   // 今の配置（buildLayerで更新）
 function buildLayer(){
   lctx.clearRect(0,0,W,H);
-  const L=layout();
+  L=layout();
   if(L){
     lctx.fillStyle='#2a2622';lctx.fillRect(0,0,W,H);
     lctx.imageSmoothingQuality='high';
@@ -173,44 +244,119 @@ function buildLayer(){
   }
   updateInfo();
 }
+// 穴を黒くする濃さ（0〜1）。N秒モードは録画開始からN秒黒、その後FADE秒でカメラへ
+function blackAlpha(){
+  if(g.black==='on')return 1;
+  if(typeof g.black==='number'&&phase==='rec'){
+    const e=(performance.now()-t0)/1000;
+    return e<g.black?1:Math.max(0,1-(e-g.black)/FADE);
+  }
+  return 0;
+}
 function draw(){
   ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
   if(video.readyState>=2&&video.videoWidth){
     const vw=video.videoWidth,vh=video.videoHeight;
     const s0=Math.max(W/vw,H/vh);
     const bx=(W-vw*s0)/2,by=(H-vh*s0)/2;
-    const z=mode==='close'?1:st.zoom;       // 寄りではカメラは等倍
-    const L=layout();
+    const z=mode==='close'||!cur?1:S().zoom;       // 寄りではカメラは等倍
     // 拡大の中心は穴の中心（絵がないときは画面の中心）
     const cx=L?L.hx+L.hw/2:W/2,cy=L?L.hy+L.hh/2:H/2;
     ctx.drawImage(video,cx-(cx-bx)*z,cy-(cy-by)*z,vw*s0*z,vh*s0*z);
   }
-  ctx.drawImage(layer,0,0);
+  if(L){
+    const a=blackAlpha();
+    if(a>0){ctx.globalAlpha=a;ctx.fillStyle='#000';ctx.fillRect(L.hx,L.hy,L.hw,L.hh);ctx.globalAlpha=1;}
+    ctx.drawImage(layer,0,0);
+    // ガイド：録画中は描かない（録画用canvasに入れないため）
+    if(g.guide&&phase!=='rec'){
+      const h=S().hole;
+      ctx.globalAlpha=.4;
+      ctx.drawImage(pic.src,h.x*pic.w,h.y*pic.h,h.w*pic.w,h.h*pic.h,L.hx,L.hy,L.hw,L.hh);
+      ctx.globalAlpha=1;
+    }
+  }
   requestAnimationFrame(draw);
 }
-function flipped(){return st.mirror&&facing==='user';}
-function applyMirror(){mirrorEl.classList.toggle('flip',flipped());$('mirBtn').classList.toggle('on',st.mirror);}
+function flipped(){return g.mirror&&facing==='user';}
+function applyMirror(){mirrorEl.classList.toggle('flip',flipped());}
 
-// ---- 絵を選ぶ ----
-$('pic').onchange=e=>{
-  const f=e.target.files[0];if(!f)return;
-  const url=URL.createObjectURL(f);
-  const i=new Image();
-  i.onload=()=>{
-    let w=i.naturalWidth,h=i.naturalHeight,src=i;
-    // 大きすぎる画像はiPhoneで描けないことがあるので縮める
-    const k=Math.min(1,MAX_SIDE/Math.max(w,h),Math.sqrt(MAX_AREA/(w*h)));
-    if(k<1){
-      const c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);
-      const cx=c.getContext('2d');cx.imageSmoothingQuality='high';cx.drawImage(i,0,0,c.width,c.height);
-      src=c;w=c.width;h=c.height;URL.revokeObjectURL(url);
-    }
-    pic={src,w,h,ow:i.naturalWidth,oh:i.naturalHeight};
-    clampHole();buildLayer();updateHint();
-  };
-  i.onerror=()=>{URL.revokeObjectURL(url);showMsg('画像を読み込めませんでした。別の画像を選んでください。');};
-  i.src=url;e.target.value='';
+// ---- 絵を選ぶ・読み込む ----
+function decode(blob){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(blob),i=new Image();
+    i.onload=()=>res({i,url});
+    i.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('decode'));};
+    i.src=url;
+  });
+}
+function toBlob(c,type,q){return new Promise(res=>c.toBlob(res,type,q));}
+function scaled(i,k){
+  const c=document.createElement('canvas');c.width=Math.max(1,Math.round(i.naturalWidth*k));c.height=Math.max(1,Math.round(i.naturalHeight*k));
+  const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(i,0,0,c.width,c.height);return c;
+}
+$('pic').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  let d;
+  try{d=await decode(f);}catch(err){showMsg('画像を読み込めませんでした。別の画像を選んでください。');return;}
+  const {i,url}=d,ow=i.naturalWidth,oh=i.naturalHeight;
+  // 大きすぎる画像はiPhoneで描けないことがあるので縮める
+  const k=Math.min(1,MAX_SIDE/Math.max(ow,oh),Math.sqrt(MAX_AREA/(ow*oh)));
+  let src=i,blob=f;
+  if(k<1){src=scaled(i,k);URL.revokeObjectURL(url);blob=await toBlob(src,'image/jpeg',.92)||f;}
+  const thumb=await toBlob(scaled(i,Math.min(1,320/Math.max(ow,oh))),'image/jpeg',.8);
+  const rec={id:Date.now(),name:f.name||'名画',w:src.width||ow,h:src.height||oh,ow,oh,set:defSet(),used:Date.now()};
+  setCurrent(rec,src);
+  try{await dbPut({...rec,blob,thumb});}
+  catch(err){showMsg('この絵を保存できませんでした。今回は使えますが、次回は選び直しが必要です。');}
 };
+function setCurrent(rec,src){
+  cur=rec;pic={src,w:rec.w,h:rec.h,ow:rec.ow,oh:rec.oh};
+  g.lastId=rec.id;saveG();
+  if(mode==='close')mode='wide';
+  clampHole();buildLayer();syncButtons();updateHint();
+}
+async function openSaved(id){
+  try{
+    const r=await dbGet(id);
+    if(!r)return false;
+    const {i}=await decode(r.blob);
+    const {blob,thumb,...rec}=r;
+    setCurrent(rec,i);
+    saveSet();   // 最終使用日時を更新
+    return true;
+  }catch(err){showMsg('保存した絵を開けませんでした。もう一度選んでください。');return false;}
+}
+
+// ---- 一覧 ----
+let libUrls=[];
+async function openLib(){
+  let all=[];
+  try{all=await dbAll();}catch(e){showMsg('保存した絵の一覧を読めませんでした。');return;}
+  all.sort((a,b)=>(b.used||0)-(a.used||0));
+  libUrls.forEach(u=>URL.revokeObjectURL(u));libUrls=[];
+  const list=$('libList');list.textContent='';
+  if(!all.length){const p=document.createElement('p');p.textContent='まだ保存した絵はありません。「名画を選ぶ」から追加してください。';p.style.gridColumn='1/-1';list.appendChild(p);}
+  for(const r of all){
+    const it=document.createElement('div');it.className='item';
+    const b=document.createElement('button');b.className='pick'+(cur&&cur.id===r.id?' cur':'');b.setAttribute('aria-label',r.name+'を開く');
+    const im=document.createElement('img');const u=URL.createObjectURL(r.thumb||r.blob);libUrls.push(u);im.src=u;im.alt='';b.appendChild(im);
+    b.onclick=async()=>{closeLib();await openSaved(r.id);};
+    const del=document.createElement('button');del.className='del';del.textContent='削除';
+    del.onclick=async()=>{
+      if(!del.classList.contains('ask')){del.classList.add('ask');del.textContent='削除する';return;}
+      try{await dbDel(r.id);}catch(e){showMsg('削除できませんでした。');return;}
+      if(cur&&cur.id===r.id){cur=null;pic=null;g.lastId=null;saveG();buildLayer();syncButtons();updateHint();}
+      it.remove();
+    };
+    it.append(b,del);list.appendChild(it);
+  }
+  $('lib').classList.add('on');
+}
+function closeLib(){$('lib').classList.remove('on');}
+$('libBtn').onclick=()=>{if(phase==='idle')openLib();};
+$('libClose').onclick=closeLib;
+
 function updateHint(){
   const t=[];if(!pic)t.push('① 名画を選ぶ');if(!stream)t.push('② カメラを起動');
   if(t.length){t.push('③ 穴の位置を合わせて録画');$('hint').innerHTML=t.join('<br>');$('hint').style.display='block';}
@@ -234,35 +380,51 @@ async function startCam(){
   try{await video.play();}catch(e){}
   $('msg').classList.remove('on');
   $('flipBtn').disabled=false;$('recBtn').disabled=false;$('camBtn').textContent='カメラ再起動';
+  g.camUsed=true;saveG();
   applyMirror();updateHint();keepAwake();
   video.onloadedmetadata=updateInfo;updateInfo();
 }
 $('camBtn').onclick=startCam;
-$('flipBtn').onclick=()=>{facing=facing==='user'?'environment':'user';startCam();};
-$('mirBtn').onclick=()=>{st.mirror=!st.mirror;applyMirror();saveState();};
+$('flipBtn').onclick=()=>{if(phase!=='idle')return;facing=facing==='user'?'environment':'user';startCam();};
+$('mirBtn').onclick=()=>{g.mirror=!g.mirror;applyMirror();syncButtons();saveG();};
 
-// ---- 表示の切替 ----
-$('fitBtn').onclick=()=>{st.fit=st.fit==='contain'?'cover':'contain';clampHole();buildLayer();syncButtons();saveState();};
-$('modeBtn').onclick=()=>{mode=mode==='wide'?'close':'wide';if(mode==='close'&&editing)toggleEdit();buildLayer();syncButtons();};
-$('zoom').oninput=e=>{st.zoom=+e.target.value;};
-$('zoom').onchange=saveState;
-$('sqBtn').onclick=()=>{st.square=!st.square;clampHole();buildLayer();syncButtons();saveState();};
-function toggleEdit(){editing=!editing;holeEl.classList.toggle('on',editing);syncButtons();}
-$('editBtn').onclick=()=>{if(!pic){showMsg('先に名画を選んでください。');return;}toggleEdit();};
+// ---- 表示・撮影設定の切替 ----
+const next=(arr,v)=>arr[(arr.indexOf(v)+1)%arr.length];
+$('fitBtn').onclick=()=>{if(!cur)return;S().fit=S().fit==='contain'?'cover':'contain';clampHole();buildLayer();syncButtons();saveSet();};
+$('modeBtn').onclick=()=>{if(phase!=='idle')return;mode=mode==='wide'?'close':'wide';if(mode==='close'&&editing)toggleEdit();buildLayer();syncButtons();
+  // 寄りで絵が粗くなるときの注意（穴の部分の元画像が1080px未満）
+  if(mode==='close'&&L&&L.s>1.001)showMsg('絵の画質が粗くなります（穴の部分の画像が'+Math.round(L.hw/L.s)+'pxしかありません）。');
+};
+$('zoom').oninput=e=>{if(cur)S().zoom=+e.target.value;};
+$('zoom').onchange=saveSet;
+$('sqBtn').onclick=()=>{if(!cur)return;S().square=!S().square;clampHole();buildLayer();syncButtons();saveSet();};
+function toggleEdit(){editing=!editing;holeEl.classList.toggle('on',editing);document.body.classList.toggle('editing',editing);syncButtons();}
+$('editBtn').onclick=()=>{if(!pic){showMsg('先に名画を選んでください。');return;}if(phase!=='idle')return;toggleEdit();};
+$('guideBtn').onclick=()=>{g.guide=!g.guide;syncButtons();saveG();};
+$('blackBtn').onclick=()=>{if(phase==='rec')return;g.black=next(BLACKS,g.black);syncButtons();saveG();};
+$('timerBtn').onclick=()=>{if(phase!=='idle')return;g.timer=next(TIMERS,g.timer);syncButtons();saveG();};
+$('durBtn').onclick=()=>{if(phase!=='idle')return;g.dur=next(DURS,g.dur);syncButtons();saveG();};
 function syncButtons(){
-  $('fitBtn').textContent=st.fit==='contain'?'全体表示':'画面いっぱい';
+  const set=S()||defSet();
+  $('fitBtn').textContent=set.fit==='contain'?'全体表示':'画面いっぱい';
   $('modeBtn').textContent=mode==='wide'?'引き':'寄り';$('modeBtn').classList.toggle('on',mode==='close');
   $('editBtn').textContent=editing?'編集を終える':'穴を編集';$('editBtn').classList.toggle('on',editing);
   $('editBtn').disabled=mode==='close';
-  $('sqBtn').classList.toggle('on',st.square);
-  $('zoom').disabled=mode==='close';$('zoom').value=mode==='close'?1:st.zoom;
+  $('sqBtn').classList.toggle('on',set.square);
+  $('mirBtn').classList.toggle('on',g.mirror);
+  $('zoom').disabled=mode==='close';$('zoom').value=mode==='close'?1:set.zoom;
+  $('guideBtn').classList.toggle('on',g.guide);
+  $('blackBtn').textContent=g.black==='off'?'黒い穴 なし':g.black==='on'?'黒い穴 常に':'黒い穴 最初'+g.black+'秒';
+  $('blackBtn').classList.toggle('on',g.black!=='off');
+  $('timerBtn').textContent=g.timer?'タイマー '+g.timer+'秒':'タイマー なし';
+  $('durBtn').textContent=g.dur?'長さ '+g.dur+'秒':'長さ 手動';
 }
 
 // ---- 穴のドラッグ（移動）とハンドル（大きさ）----
 let drag=null;
 holeEl.addEventListener('pointerdown',e=>{
   if(!editing||!pic)return;
-  drag={size:!!e.target.closest('.h'),sx:e.clientX,sy:e.clientY,h0:{...st.hole}};
+  drag={size:!!e.target.closest('.h'),sx:e.clientX,sy:e.clientY,h0:{...S().hole}};
   holeEl.setPointerCapture(e.pointerId);e.preventDefault();
 });
 holeEl.addEventListener('pointermove',e=>{
@@ -271,47 +433,74 @@ holeEl.addEventListener('pointermove',e=>{
   // 画面上の指の動き → 1080×1920の座標 → 絵の比率。鏡写し表示中は左右を戻す
   const dx=(e.clientX-drag.sx)*(W/r.width)*(flipped()?-1:1)/(s*pic.w);
   const dy=(e.clientY-drag.sy)*(H/r.height)/(s*pic.h);
-  const h=st.hole,h0=drag.h0;
+  const h=S().hole,h0=drag.h0;
   if(!drag.size){h.x=h0.x+dx;h.y=h0.y+dy;}
-  else{h.x=h0.x;h.y=h0.y;h.w=h0.w+dx;h.h=st.square?h.w*pic.w/pic.h:h0.h+dy;}
+  else{h.x=h0.x;h.y=h0.y;h.w=h0.w+dx;h.h=S().square?h.w*pic.w/pic.h:h0.h+dy;}
   clampHole();buildLayer();
 });
-const endDrag=()=>{if(drag){drag=null;saveState();}};
+const endDrag=()=>{if(drag){drag=null;saveSet();}};
 holeEl.addEventListener('pointerup',endDrag);holeEl.addEventListener('pointercancel',endDrag);
 
-// ---- 録画 ----
-let rec=null,chunks=[],t0=0,timer=null,mime='',outFile=null,outUrl=null;
+// ---- セルフタイマーと録画 ----
+let rec=null,chunks=[],tick=null,countTimer=null,mime='',outFile=null,outUrl=null;
 function pickMime(){
   for(const m of['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'])
     if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m))return m;
   return '';
 }
-function startRec(){
-  if(!window.MediaRecorder||!view.captureStream){showMsg('このブラウザは録画に対応していません。');return;}
-  mime=pickMime();
-  try{
-    const s=view.captureStream(30);
-    rec=new MediaRecorder(s,mime?{mimeType:mime,videoBitsPerSecond:10e6}:{videoBitsPerSecond:10e6});
-  }catch(err){showMsg('録画を開始できませんでした（'+err.name+'）');rec=null;return;}
-  chunks=[];
-  rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
-  rec.onstop=showResult;
-  rec.onerror=e=>showMsg('録画中にエラーが起きました：'+((e.error&&e.error.name)||''));
-  rec.start();
-  if(editing)toggleEdit();
-  $('recBtn').classList.add('rec');$('recBadge').style.display='block';t0=performance.now();
-  timer=setInterval(()=>{
-    const s=Math.floor((performance.now()-t0)/1000);
-    $('recBadge').textContent='● '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-    if(s>=MAX_REC)stopRec();
-  },250);
+function setPhase(p){
+  phase=p;
+  $('recBtn').classList.toggle('rec',p==='rec');$('recBtn').classList.toggle('count',p==='count');
+  $('recBtn').setAttribute('aria-label',p==='idle'?'録画':p==='count'?'カウントダウンを中止':'録画を止める');
+  $('recBadge').style.display=p==='rec'?'block':'none';
+  if(p!=='count'){$('count').classList.remove('on');clearInterval(countTimer);}
 }
-function stopRec(){if(rec&&rec.state==='recording')rec.stop();}
-$('recBtn').onclick=()=>{if(rec&&rec.state==='recording')stopRec();else startRec();};
+function startCountdown(){
+  if(!window.MediaRecorder||!view.captureStream){showMsg('このブラウザは録画に対応していません。');return;}
+  if(editing)toggleEdit();
+  if(!g.timer){beginRec();return;}
+  let n=g.timer;setPhase('count');
+  $('count').textContent=n;$('count').classList.add('on');
+  countTimer=setInterval(()=>{n--;if(n<=0){beginRec();}else $('count').textContent=n;},1000);
+}
+function beginRec(){
+  setPhase('rec');t0=performance.now();
+  // ガイドが消えたコマが描かれてから録画を始める
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(phase!=='rec')return;
+    mime=pickMime();
+    try{
+      const s=view.captureStream(30);
+      rec=new MediaRecorder(s,mime?{mimeType:mime,videoBitsPerSecond:10e6}:{videoBitsPerSecond:10e6});
+    }catch(err){showMsg('録画を開始できませんでした（'+err.name+'）');rec=null;setPhase('idle');return;}
+    chunks=[];
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+    rec.onstop=showResult;
+    rec.onerror=e=>showMsg('録画中にエラーが起きました：'+((e.error&&e.error.name)||''));
+    rec.start();
+    t0=performance.now();
+    const limit=Math.min(g.dur||MAX_REC,MAX_REC);
+    const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+    const upd=()=>{
+      const e=(performance.now()-t0)/1000;
+      $('recBadge').textContent='● '+fmt(Math.floor(e))+(g.dur?' / '+fmt(limit):'');
+      if(e>=limit)stopRec();
+    };
+    upd();tick=setInterval(upd,100);
+  }));
+}
+function cancelCountdown(){setPhase('idle');}
+function stopRec(){
+  clearInterval(tick);
+  if(rec&&rec.state==='recording')rec.stop();
+  else if(phase==='rec')setPhase('idle');
+}
+$('recBtn').onclick=()=>{if(phase==='idle')startCountdown();else if(phase==='count')cancelCountdown();else stopRec();};
 function showResult(){
-  clearInterval(timer);$('recBtn').classList.remove('rec');$('recBadge').style.display='none';
+  const dur=(performance.now()-t0)/1000;
+  setPhase('idle');
   const type=(rec&&rec.mimeType||mime||'video/webm').split(';')[0];
-  const blob=new Blob(chunks,{type});chunks=[];
+  const blob=new Blob(chunks,{type});chunks=[];rec=null;
   if(!blob.size){showMsg('録画データが空でした。もう一度撮ってください。');return;}
   const ext=type.includes('mp4')?'mp4':'webm';
   const name='meiga-'+new Date().toISOString().slice(0,19).replace(/[-:T]/g,'')+'.'+ext;
@@ -320,6 +509,7 @@ function showResult(){
   if(outUrl)URL.revokeObjectURL(outUrl);
   outUrl=URL.createObjectURL(blob);
   $('out').src=outUrl;$('dl').href=outUrl;$('dl').download=name;
+  $('outInfo').textContent='約'+dur.toFixed(1)+'秒 ／ '+ext.toUpperCase()+' ／ '+(blob.size/1048576).toFixed(1)+'MB';
   $('result').classList.add('on');
 }
 $('saveBtn').onclick=()=>{
@@ -336,7 +526,7 @@ async function keepAwake(){
   try{if('wakeLock' in navigator&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;});}}catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){stopRec();return;}
+  if(document.hidden){if(phase==='count')cancelCountdown();else if(phase==='rec')stopRec();return;}
   if(stream){
     const live=stream.getVideoTracks().some(t=>t.readyState==='live');
     if(!live)startCam();else video.play().catch(()=>{});
@@ -349,13 +539,18 @@ function updateInfo(){
   if(video.videoWidth)t.push('カメラ '+video.videoWidth+'×'+video.videoHeight);
   if(pic){
     t.push('絵 '+pic.ow+'×'+pic.oh+(pic.ow!==pic.w?'（'+pic.w+'×'+pic.h+'に縮小）':''));
-    if(mode==='close'){const L=layout();if(L&&L.s>1.001)t.push('絵の拡大 '+L.s.toFixed(1)+'倍');}
+    if(mode==='close'&&L&&L.s>1.001)t.push('絵の拡大 '+L.s.toFixed(1)+'倍');
   }
   const m=pickMime();t.push('録画 '+(m?m.split(';')[0]:'非対応'));
   $('info').textContent=t.join(' ／ ');
 }
 
-applyMirror();syncButtons();buildLayer();requestAnimationFrame(draw);
+// ---- 起動 ----
+applyMirror();syncButtons();buildLayer();updateHint();requestAnimationFrame(draw);
+(async()=>{
+  if(g.lastId)await openSaved(g.lastId).then(ok=>{if(!ok){g.lastId=null;saveG();}});
+  if(g.camUsed)startCam();
+})();
 }
 </script>
 </body>
